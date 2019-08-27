@@ -1,0 +1,31 @@
+env:
+  browser: true
+  commonjs: true
+  es6: true
+  node: true
+extends: 'eslint:recommended'
+parserOptions:
+  ecmaVersion: 2018
+  sourceType: module
+rules:
+  no-console:
+    - 0
+  no-debugger:
+    - 1
+  indent:
+    - 2
+    - 2
+    - SwitchCase: 1 
+      VariableDeclarator:
+        var: 2
+        let: 2
+        const: 3
+  linebreak-style:
+    - error
+    - unix
+  quotes:
+    - warn
+    - single
+  semi:
+    - error
+    - always

@@ -1,0 +1,50 @@
+{
+  "name": "pakki",
+  "version": "0.1.0",
+  "description": "Your ultimate build toolkit for Static Sites and SPAs.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joona/pakki.git"
+  },
+  "keywords": [
+    "static",
+    "site",
+    "generator",
+    "build",
+    "tool"
+  ],
+  "author": "Joona Kulmala <jmkulmala@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/joona/pakki/issues"
+  },
+  "homepage": "https://github.com/joona/pakki#readme",
+  "dependencies": {
+    "@babel/core": "^7.5.5",
+    "@babel/plugin-external-helpers": "^7.2.0",
+    "@babel/polyfill": "^7.4.4",
+    "@babel/preset-env": "^7.5.5",
+    "chokidar": "^1.7.0",
+    "core-js": "^2.6.9",
+    "glob": "^7.1.2",
+    "less": "^2.7.2",
+    "livereload": "^0.6.2",
+    "mkdirp-promise": "^5.0.1",
+    "node-yaml": "^4.0.1",
+    "recursive-copy": "^2.0.10",
+    "rollup": "^1.20.0",
+    "rollup-plugin-babel": "^4.3.3",
+    "rollup-plugin-buble": "^0.19.8",
+    "rollup-plugin-commonjs": "^10.0.2",
+    "rollup-plugin-json": "^4.0.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-postcss": "^2.0.3",
+    "rollup-plugin-replace": "^2.2.0",
+    "serve": "^6.0.6",
+    "serve-handler": "^6.1.0"
+  }
+}
