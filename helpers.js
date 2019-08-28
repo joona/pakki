@@ -1,67 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const marked = require('marked');
-const store = require('./store');
-const toStyleString = require('to-style').string;
-const pug = require('pug');
-
-
-function renderMarkdownPartial(ctx, context, block, content) {
-  const { source } = ctx;
-  const { processor, command, parts, args } = block;
-  const statement = [processor, command].join(':');
-
-  let output, template;
-
-  switch(statement) {
-    case 'pug:mixin':
-      let blockContent = null;
-      let [ mixin ] = parts;
-      let argsSet = new Set(args);
-
-      if(content) {
-        blockContent = content.map(x => `  ${x}`).join("\n");
-      }
-
-      if(argsSet.has('marked')) {
-        blockContent = marked(blockContent)
-          .split("\n")
-          .map(x => `  ${x}`)
-          .join("\n");
-      }
-
-      contents = `
-include _mixins.pug
-+${mixin}(page, ${args.map(x => JSON.stringify(x)).join(', ')})`;
-
-      if(blockContent) {
-        contents += "\n" + blockContent;
-      }
-
-      //console.log('pug contents:', contents);
-
-      template = pug.compile(contents, {
-        filename: path.join(source, 'templates', 'temp.pug')
-      });
-      output = template({ 
-        page: context, 
-        store: ctx.store,
-        ...helpers(ctx)
-      });
-      return output;
-
-    case 'pug:render':
-      contents = `include _mixins.pug\n${content.join("\n")}`;
-      template = pug.compile(contents, {
-        filename: path.join(source, 'templates', 'temp.pug')
-      });
-      output = template({ page: context, store: ctx.store });
-      return output;
-
-    default:
-      return `<!-- INVALID PARTIAL (${statement}) -->`;
-  }
-}
 
 const helpers = module.exports = (context, templateContext) => {
   return {
@@ -156,18 +95,14 @@ const helpers = module.exports = (context, templateContext) => {
       return item;
     },
 
-    toStyle(css) {
-      return toStyleString(css);
-    },
-
     getUrl(slug) {
-      const page = store.sitemap[slug];
+      const page = context.store.sitemap[slug];
       if(page) return page.path;
       return '/';
     },
 
     getUrlBySlug(slug) {
-      const page = store.sitemap[slug];
+      const page = context.store.sitemap[slug];
       if(page) return page.path;
       return '/';
     },

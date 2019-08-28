@@ -1,19 +1,8 @@
-const fs = require('fs');
 const path = require('path');
 
-const less = require('less');
-const mkdirp = require('mkdirp-promise');
+const { mkdirp, copy, recursiveCopy, glob } = require('./utils');
 
-const { copy, recursiveCopy, glob, writeFile } = require('./utils');
-
-const lessRender = (content, options) => {
-  return new Promise((resolve, reject) => {
-    less.render(content, options)
-      .then(output => resolve(output), err => reject(err));
-  });
-};
-
-const tasks = module.exports = {
+module.exports = {
   async buildHtml(ctx) {
     const { source, dest } = ctx;
     const templates = await glob(path.join(source, 'html/*.html'));
@@ -50,8 +39,6 @@ const tasks = module.exports = {
 
     const sourcePath = path.join(source, 'assets'); 
     const destPath = path.join(dest, 'assets');
-    //console.log(options);
-    //console.log(sourcePath, destPath);
 
     const results = await recursiveCopy(sourcePath, destPath, options)
       .on(recursiveCopy.events.ERROR, (err, info) => {
@@ -77,33 +64,5 @@ const tasks = module.exports = {
     console.log('[buildAssets] copied', results.length, 'assets');
     return results;
   },
-
-  async buildLessFile(ctx, entry) {
-    const { source, dest } = ctx;
-    const lessContent = fs.readFileSync(path.join(source, 'less', entry));
-    const lessOptions = {
-      paths: [ path.join(source, 'less') ]
-    };
-
-    try {
-      const output = await lessRender(lessContent.toString(), lessOptions);
-      const destFile = entry.replace('less', 'css');
-
-      await writeFile(path.join(dest, destFile), output.css);
-      console.log('[buildLess] built!');
-    } catch(err) {
-      console.error('Failed to build less:');
-      console.error(err);
-      throw new err;
-    }
-  },
-
-  async buildLess(ctx) {
-    const { entries } = ctx.lessSettings || {};
-
-    await Promise.all(entries.map(entry => {
-      return tasks.buildLessFile(ctx, entry);
-    }));
-  }
 };
 

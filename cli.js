@@ -1,3 +1,5 @@
+const pkg = require('./package.json');
+
 const BANNER_ONE = `
                   O~~     O~~        
                   O~~     O~~      O~
@@ -6,10 +8,15 @@ O~  O~~  O~~  O~~ O~~ O~~ O~~ O~~ O~~
 O~   O~~O~~   O~~ O~O~~   O~O~~   O~~
 O~~ O~~ O~~   O~~ O~~ O~~ O~~ O~~ O~~
 O~~       O~~ O~~~O~~  O~~O~~  O~~O~~
-O~~
+O~~                           
+                               v${pkg.version}
+
          your ultimate build toolkit.
+
+O~~O~~O~~O~~O~~O~~O~~O~~O~~O~~O~~O~~O
 `;
 
+/*
 const BANNER_TWO = `
                   /^^     /^^        
                   /^^     /^^      /^
@@ -21,6 +28,7 @@ const BANNER_TWO = `
 /^^                                  
          your ultimate build toolkit.
 `;
+*/
 
 class CommandBuilder {
   constructor(context) {

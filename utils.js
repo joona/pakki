@@ -1,5 +1,6 @@
 const fs = require('fs');
 const util = require('util');
+const path = require('path');
 const mkdirp = require('mkdirp-promise');
 const recursiveCopy = require('recursive-copy');
 
@@ -35,5 +36,49 @@ const utils = module.exports = {
 
   lookup(obj, ...args) {
     return args.reduce((xs, x) => (xs && xs[x] !== undefined && xs[x] !== null) ? xs[x] : null, obj);
+  },
+
+  translateUrlToStaticPath(ctx, destPath) {
+    const { dest } = ctx;
+    const url = destPath; 
+    if(destPath.charAt(0) == '/') destPath = destPath.substr(1);
+    destPath = path.join(dest, destPath);
+
+    const extension = path.extname(destPath);
+    if(!extension) {
+      destPath = path.join(destPath, 'index.html');
+    }
+
+    const basePath = path.dirname(destPath);
+    return {
+      url,
+      basePath,
+      filePath: destPath
+    };
+  },
+
+  async writeSiteFile(ctx, url, contentOrFactory) {
+    const { basePath, filePath } = utils.translateUrlToStaticPath(ctx, url);
+
+    let content = null;
+
+    // allow returning the content from a factory
+    if(typeof contentOrFactory === 'function') {
+      console.log('returning content from a factory');
+      content = await contentOrFactory(ctx, { filePath, basePath, url });
+    } else {
+      content = contentOrFactory;
+    }
+
+    try {
+      await mkdirp(basePath);
+      await writeFile(filePath, content);
+    } catch(err) {
+      console.error(`[writeSiteFile] error while writing ${filePath} (${url})`, err.message);
+      console.error(err.stack);
+      throw err;
+    }
+
+    return { filePath, url };
   }
 };
