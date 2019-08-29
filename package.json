@@ -1,5 +1,5 @@
 {
-  "name": "pakki",
+  "name": "@joona/pakki",
   "version": "0.1.0",
   "description": "Your ultimate build toolkit for Static Sites and SPAs.",
   "main": "index.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/joona/pakki.git"
+    "url": "git@github.com/joona/pakki.git"
   },
   "keywords": [
     "static",
@@ -21,6 +21,9 @@
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/joona/pakki/issues"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
   },
   "homepage": "https://github.com/joona/pakki#readme",
   "dependencies": {
