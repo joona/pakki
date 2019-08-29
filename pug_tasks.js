@@ -65,7 +65,6 @@ const tasks = module.exports = {
     let contentFactory = (templateContext) => {
       return async (ctx, additionalContext = {}) => {
         Object.assign(templateContext, additionalContext);
-        console.log('templateContext:', templateContext);
         return await templateFunction(templateContext);
       };
     };
