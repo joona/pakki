@@ -2,21 +2,31 @@ const path = require('path');
 const chokidar = require('chokidar');
 
 class WatcherBuilder {
-  constructor(options = {}) {
-    this.prefix = options.prefix;
-    this.context = options.context;
+  constructor(context, options = {}) {
+    this.prefix = context.source;
     this.watchers = [];
     this.paths = [];
+
+    this.defaultOptions = {
+      ignoreInitial: true,
+      ...options
+    };
   }
 
   add(callback, ...paths) {
+    let options = {};
+    if(typeof paths[paths.length - 1] === 'object') {
+      options = paths.pop();
+    }
+
     paths = paths
       .reduce((arr, x) => arr.concat(Array.isArray(x) ? x : [x]), [])
       .map(x => path.resolve(path.join(this.prefix, x)));
 
     this.paths = [...this.paths, ...paths];
 
-    const watcher = chokidar.watch(paths);
+    const args = { ...this.defaultOptions, ...(options || {}) };
+    const watcher = chokidar.watch(paths, args);
 
     let cb = (action, path) => {
       console.log('[watcher] change detected', action, path);
@@ -34,12 +44,8 @@ class WatcherBuilder {
 }
 
 module.exports = {
-  watcher(context, callback) {
-    const { source } = context;
-    const builder = new WatcherBuilder({
-      prefix: source,
-      context
-    });
+  watcher(context, callback, options = {}) {
+    const builder = new WatcherBuilder(context, options);
 
     if(callback) {
       callback(context, { add: builder.add.call(builder) });

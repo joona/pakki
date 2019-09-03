@@ -26,12 +26,12 @@ const tasks = module.exports = {
 
       return bluebird.map(types, type => {
         if(process.env[`DISABLE_${type.toUpperCase()}_BUNDLE`]) {
-          console.info(`[buildBundles] skipping bundle ${name} (${type})...`);
           return Promise.resolve();
         }
 
+        console.log('[buildBundle]', name, type);
         return tasks.buildBundle(ctx, name, type, { plugins, ...options });
-      }, { concurrency: 1 });
+      }, { concurrency: 2 });
     });
   }
 };

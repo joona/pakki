@@ -12,6 +12,7 @@ const postcss = require('rollup-plugin-postcss');
 const { lookup } = require('./utils');
 
 const configCache = {};
+const bundleLocks = {};
 
 const plugins = {
   injectFromLocale(options = {}) {
@@ -176,7 +177,7 @@ const tasks = module.exports = {
 
     for (var y = 0, ylen = plugins.length; y < ylen; y++) {
       const plugin = plugins[y];
-      console.log('plugin:', plugin);
+      //console.log('plugin:', plugin);
       const maybeAlreadyExists = findPlugin(plugs, plugin);
 
       if(maybeAlreadyExists) {
@@ -245,17 +246,26 @@ const tasks = module.exports = {
   },
 
   async buildEntry(ctx, entry, options = {}) {
-    console.log('[buildEntry]', entry, options);
+    const startTime = +(new Date());
     const { source, dest } = ctx;
     let bundleFormat = 'es';
     let bundleName = `${entry}.es`;
+
     let isLegacy = false;
 
-    if(options.type == 'es5') {
+    if(options.type == 'es5' || options.type == 'iife') {
       bundleFormat = 'iife';
       bundleName = entry;
       isLegacy = true;
     }
+
+    let bundleKey = `${entry}-${bundleFormat}`;
+    if(bundleLocks[bundleKey]) {
+      console.warn('[bundleEntry] skipping ', bundleKey, 'already building', bundleLocks);
+      return Promise.resolve();
+    }
+
+    bundleLocks[bundleKey] = true;
 
     let plugins = [];
     const additionalPlugins = options.plugins || [];
@@ -270,9 +280,15 @@ const tasks = module.exports = {
     console.log('[buildEntry]', bundleName, bundleFormat, filteredPluginConfig.map(x => x.name).join(', '));
 
     if(isLegacy == true) {
-      plugins.push(babel({
-        exclude: ['node_modules/**']
-      }));
+      const babelSettings = ctx.babelSettings || {};
+      const rollupOptions = {
+        exclude: ['node_modules/**'],
+        configFile: babelSettings.configFile || path.join(__dirname, 'babel.config.js'),
+        babelrc: false,
+        ...(babelSettings.rollupOptions || {})
+      };
+
+      plugins.push(babel(rollupOptions));
     }
 
     let bundle;
@@ -293,7 +309,8 @@ const tasks = module.exports = {
       file: output
     });
 
-    console.log('[buildEntry]', bundleFormat, entry, '=>', bundleName, 'built!');
+    console.log('[buildEntry]', bundleFormat, entry, '=>', bundleName, 'built! took', +(new Date()) - startTime);
+    delete bundleLocks[bundleKey];
     return output;
   }
 };
