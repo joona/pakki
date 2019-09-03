@@ -4,14 +4,22 @@ const sitemapBuilder = require('sitemap');
 const { writeFile } = require('./utils');
 
 module.exports = {
-  async buildSitemap(ctx) {
+  async buildSitemap(ctx, sitemap) {
     const { dest, site } = ctx;
 
     const urls = [];
     const urlSet = new Set();
 
+    if(!sitemap) {
+      sitemap = ctx.sitemap;
+    }
+
+    if(!sitemap || sitemap.length < 1) {
+      throw new Error('Sitemap not defined, or it is empty');
+    }
+
     //console.log('Sitemap:', site.sitemap);
-    ctx.sitemap.forEach(item => {
+    sitemap.forEach(item => {
       if(item.ignore) return;
       if(urlSet.has(item.url)) return;
       let prio = item.prio || (item.isAlias ? 0.7 : 1);
@@ -28,14 +36,14 @@ module.exports = {
       urlSet.add(item.url);
     });
 
-    const sitemap = sitemapBuilder.createSitemap({
+    const sitemapContent = sitemapBuilder.createSitemap({
       hostname: site.baseUrl,
       cacheTime: 60 * 60 * 10,
       urls
     });
 
     console.log('[buildSitemap] writing sitemap with ', urls.length, 'items');
-    await writeFile(path.join(dest, 'sitemap.xml'), sitemap.toString());
+    await writeFile(path.join(dest, 'sitemap.xml'), sitemapContent.toString());
 
     ctx.sitemap = [];
   }

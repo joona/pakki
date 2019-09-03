@@ -13,37 +13,79 @@ const { lookup } = require('./utils');
 
 const configCache = {};
 
-function injectFromLocale(options = {}) {
-  const dict = options.dictionary || {};
-  const re = /__\(\s*(['"`])(.+?)\1\s*\)/g;
-  const stringRe = /\$\(\s*(.+?)\s*\)/g;
+const plugins = {
+  injectFromLocale(options = {}) {
+    const dict = options.dictionary || {};
+    const re = /__\(\s*(['"`])(.+?)\1\s*\)/g;
+    const stringRe = /\$\(\s*(.+?)\s*\)/g;
 
-  function stringReplacer(match, key) {
-    const parts = key.split('.');
-    const val = lookup(dict, ...parts);
-    if(val !== undefined && val !== null) return val;
-    return `!!MISSING: ${key}!!`;
-  }
-
-  function replacer(match, p0, p1) {
-    const parts = p1.split('.');
-    const val = lookup(dict, ...parts);
-    if(val !== undefined && val !== null) {
-      return JSON.stringify(val);
+    function stringReplacer(match, key) {
+      const parts = key.split('.');
+      const val = lookup(dict, ...parts);
+      if(val !== undefined && val !== null) return val;
+      return `!!MISSING: ${key}!!`;
     }
 
-    console.log('parts:', parts, dict);
-    throw new Error('translation not found:' + p1);
-  }
+    function replacer(match, p0, p1) {
+      const parts = p1.split('.');
+      const val = lookup(dict, ...parts);
+      if(val !== undefined && val !== null) {
+        return JSON.stringify(val);
+      }
 
-  return {
-    name: 'i18n',
-    transform: (source) => {
-      return source.replace(re, replacer.bind(this))
-        .replace(stringRe, stringReplacer.bind(this));
-    },
-  };
-}
+      console.log('parts:', parts, dict);
+      throw new Error('translation not found:' + p1);
+    }
+
+    return {
+      name: 'i18n',
+      transform: (source) => {
+        return source.replace(re, replacer.bind(this))
+          .replace(stringRe, stringReplacer.bind(this));
+      },
+    };
+  },
+
+  injectLocalizations(options = {}) {
+    const dict = options.dictionary || {};
+    const locales = options.locales || [];
+    const functionName = options.functionName || '__';
+    const outFunctionName = options.outputFunctionName || functionName;
+
+    const re = new RegExp(functionName + '\\(\\s*([\'"`])(.+?)\\1\\s*\\)', 'g');
+
+    function findLocalizations(keyArr) {
+      return locales.reduce((obj, locale) => {
+        const val = lookup(dict, locale, ...keyArr);
+        if(val !== undefined && val !== null) {
+          obj[locale] = val;
+        } else {
+          obj[locale] = `!!MISSING: ${keyArr.join('.')}!!`;
+        }
+        return obj;
+      }, {});
+    }
+    
+    function replacer(match, p0, p1) {
+      const parts = p1.split('.');
+      const obj = findLocalizations(parts);
+
+      console.log('[injectLocalizations] ', parts, obj);
+      if(Object.keys(obj).length > 0) {
+        return `${outFunctionName}(${JSON.stringify(obj)}, ${JSON.stringify(p1)})`;
+      }
+
+      throw new Error('translation not found:' + p1);
+    }
+
+    return {
+      name: 'i18n',
+      transform: (source) => {
+        return source.replace(re, replacer.bind(this));
+      },
+    };
+  }
+};
 
 const defaultPlugins = [
   {
@@ -65,6 +107,8 @@ const defaultPlugins = [
     module: json,
     options: {}
   },
+
+  /*
   {
     name: 'injectFromLocale',
     module: injectFromLocale,
@@ -74,6 +118,7 @@ const defaultPlugins = [
       };
     }
   },
+  */
   {
     name: 'replace',
     module: replace,
@@ -102,10 +147,14 @@ const defaultPlugins = [
 
 function findPlugin(plugins, plugin) {
   const { name } = plugin;
-  return plugins.find(x => x.name = name);
+  return plugins.filter(x => !!x).find(x => {
+    return x.name === name;
+  });
 }
 
 const tasks = module.exports = {
+  plugins,
+
   createPluginConfigForBundle(ctx, name, plugins = [], options = {}) {
     let plugs = [...defaultPlugins];
     console.time(`create-plugin-config: ${name}`);
@@ -127,6 +176,7 @@ const tasks = module.exports = {
 
     for (var y = 0, ylen = plugins.length; y < ylen; y++) {
       const plugin = plugins[y];
+      console.log('plugin:', plugin);
       const maybeAlreadyExists = findPlugin(plugs, plugin);
 
       if(maybeAlreadyExists) {
@@ -195,6 +245,7 @@ const tasks = module.exports = {
   },
 
   async buildEntry(ctx, entry, options = {}) {
+    console.log('[buildEntry]', entry, options);
     const { source, dest } = ctx;
     let bundleFormat = 'es';
     let bundleName = `${entry}.es`;
@@ -208,13 +259,15 @@ const tasks = module.exports = {
 
     let plugins = [];
     const additionalPlugins = options.plugins || [];
+    console.log('additionalPlugins:', additionalPlugins);
     const pluginConfig = tasks.createPluginConfigForBundle(ctx, entry, additionalPlugins, options);
+    const filteredPluginConfig = pluginConfig.filter(x => !!x);
 
-    pluginConfig.forEach(plugin => {
+    filteredPluginConfig.forEach(plugin => {
       plugins.push(plugin.module(plugin.options));
     });
 
-    console.log('[buildEntry]', bundleName, bundleFormat, pluginConfig.map(x => x.name).join(', '));
+    console.log('[buildEntry]', bundleName, bundleFormat, filteredPluginConfig.map(x => x.name).join(', '));
 
     if(isLegacy == true) {
       plugins.push(babel({

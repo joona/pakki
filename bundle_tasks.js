@@ -11,7 +11,7 @@ const tasks = module.exports = {
       options.middleware(entryContext, name, type, options);
     }
 
-    console.log('[buildBundle]', name, type);
+    console.log('[buildBundle]', name, type, options);
     return buildEntry(entryContext, name, { type, ...options });
   },
 
@@ -20,7 +20,7 @@ const tasks = module.exports = {
 
     return bluebird.map(bundles, bundle => {
       console.log('processing bundle', bundle);
-      const { types, name, enabled, options } = bundle;
+      const { types, name, enabled, options, plugins } = bundle;
       if(enabled !== true) {
         return Promise.resolve();
       }
@@ -31,7 +31,7 @@ const tasks = module.exports = {
           return Promise.resolve();
         }
 
-        return tasks.buildBundle(ctx, name, type, options);
+        return tasks.buildBundle(ctx, name, type, { plugins, ...options });
       }, { concurrency: 1 });
     });
   }
