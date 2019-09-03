@@ -19,7 +19,6 @@ const tasks = module.exports = {
     const { bundles } = ctx.bundleSettings;
 
     return bluebird.map(bundles, bundle => {
-      console.log('processing bundle', bundle);
       const { types, name, enabled, options, plugins } = bundle;
       if(enabled !== true) {
         return Promise.resolve();

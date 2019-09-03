@@ -30,7 +30,7 @@ module.exports = {
         url: item.url,
         changefreq: item.frequency || 'weekly',
         priority: prio,
-        lastmodrealtime: true
+        lastmodrealtime: item.updated_at || true
       });
 
       urlSet.add(item.url);

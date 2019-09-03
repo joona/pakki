@@ -9,9 +9,7 @@ const tasks = module.exports = {
     const content = await readFile(item);
     const matter = frontMatter(content.toString());
     const filePath = path.basename(path.relative(relativePath, item), '.md');
-
-    console.log(slug, matter);
-
+    
     return {
       slug,
       content: matter.body,

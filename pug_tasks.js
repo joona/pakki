@@ -39,6 +39,10 @@ const tasks = module.exports = {
     const { url, template, slug } = page;
     console.log('[writePage] writing ', slug, template, url);
 
+    if(!url) {
+      throw new Error('Dude, page needs an url!');
+    }
+
     const templateContext = { 
       ...ctx.baseTemplateContext, 
       slug,

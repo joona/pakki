@@ -58,13 +58,21 @@ const utils = module.exports = {
   },
 
   async writeSiteFile(ctx, url, contentOrFactory) {
+    if(!url) {
+      console.log('contentFactory:', contentOrFactory);
+      throw new Error('I dunno where to write the page, because url is not defined!');
+    }
     const { basePath, filePath } = utils.translateUrlToStaticPath(ctx, url);
+
+    if(!filePath) {
+      console.log('failed to resolve path:', basePath, filePath, ' / ', url);
+      throw new Error('I dunno where to write the page, because file path resolving failed!');
+    }
 
     let content = null;
 
     // allow returning the content from a factory
     if(typeof contentOrFactory === 'function') {
-      console.log('returning content from a factory');
       content = await contentOrFactory(ctx, { filePath, basePath, url });
     } else {
       content = contentOrFactory;

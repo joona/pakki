@@ -6,7 +6,9 @@ const { glob } = require('./utils');
 module.exports = {
   async readLocalizations(ctx, locale) {
     const { globPattern, consumer } = ctx.localizationSettings;
-    const files = await glob(globPattern(ctx, locale)); 
+    const pattern = globPattern(ctx, locale);
+    const files = await glob(pattern); 
+    console.log('[readLocalizations] pattern', pattern, 'resolved to', files);
 
     const parts = await bluebird.map(files, file => {
       return yaml.read(file);
