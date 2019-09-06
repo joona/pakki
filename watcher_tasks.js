@@ -6,6 +6,7 @@ class WatcherBuilder {
     this.prefix = context.source;
     this.watchers = [];
     this.paths = [];
+    this.context = context;
 
     this.defaultOptions = {
       ignoreInitial: true,

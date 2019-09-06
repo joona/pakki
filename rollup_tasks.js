@@ -300,6 +300,7 @@ const tasks = module.exports = {
     } catch(err) {
       console.error(`Error while bundling entry ${entry}: ${err.message}`);
       console.error(`Code: ${err.code}, Plugin: ${err.plugin}, Location: ${require('util').inspect(err.loc)}`);
+      delete bundleLocks[bundleKey];
       throw err;
     }
 
