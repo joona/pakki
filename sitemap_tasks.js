@@ -14,8 +14,13 @@ module.exports = {
       sitemap = ctx.sitemap;
     }
 
-    if(!sitemap || sitemap.length < 1) {
-      throw new Error('Sitemap not defined, or it is empty');
+    if(!sitemap || !Array.isArray(sitemap)) {
+      throw new Error('Sitemap not defined, must be an array');
+    }
+
+    if(sitemap.length < 1) {
+      console.warn('[buildSitemap] sitemap is empty');
+      return;
     }
 
     //console.log('Sitemap:', site.sitemap);
