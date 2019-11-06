@@ -42,6 +42,13 @@ class WatcherBuilder {
     this.watchers.push(watcher);
     return this;
   }
+
+  report() {
+    process.nextTick(() => {
+      console.log('[watcher] paths', this.paths);
+      console.log('[watcher] watching for changes...');
+    });
+  }
 }
 
 module.exports = {

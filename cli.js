@@ -34,7 +34,6 @@ class CommandBuilder {
   constructor(context) {
     this.context = context;
     this.commands = {};
-
     this.command('help', () => this.printHelp());
   }
 
@@ -73,10 +72,11 @@ class CommandBuilder {
     const handler = this.commands[command];
 
     this.printBanner();
-
     if(!handler) {
       return this.printHelp();
     }
+
+    this.lastCommand = command;
 
     const results = await handler(this.context, process.argv.slice(2));
     return {
