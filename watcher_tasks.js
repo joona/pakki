@@ -43,7 +43,7 @@ class WatcherBuilder {
     return this;
   }
 
-  report() {
+  watch() {
     process.nextTick(() => {
       console.log('[watcher] paths', this.paths);
       console.log('[watcher] watching for changes...');
