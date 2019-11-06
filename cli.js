@@ -67,9 +67,10 @@ class CommandBuilder {
     console.log();
   }
 
-  async run() {
+  async run(options = {}) {
     const command = process.argv[2];
     const handler = this.commands[command];
+    const args = process.argv.slice(2);
 
     this.printBanner();
     if(!handler) {
@@ -77,11 +78,28 @@ class CommandBuilder {
     }
 
     this.lastCommand = command;
+    let results, lastError;
 
-    const results = await handler(this.context, process.argv.slice(2));
+    try {
+      results = await handler(this.context, args);
+    } catch(err) {
+      console.error('(╯°□°)╯︵ ɹoɹɹƎ!');
+      console.error('----------------');
+      console.error('While running command:', command);
+      console.error();
+      console.error(err.stack);
+      lastError = err;
+
+      if(!options.noHalt) {
+        process.exit(1);
+      }
+    }
+
     return {
+      success: !!results,
       results,
-      command
+      command,
+      error: lastError
     };
   }
 }
