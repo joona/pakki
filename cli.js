@@ -78,10 +78,13 @@ class CommandBuilder {
       return this.printHelp();
     }
 
-    return await handler(this.context, process.argv.slice(2));
+    const results = await handler(this.context, process.argv.slice(2));
+    return {
+      results,
+      command
+    };
   }
 }
-
 
 module.exports = {
   cli(context) {
