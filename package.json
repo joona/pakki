@@ -1,6 +1,6 @@
 {
   "name": "@joona/pakki",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Your ultimate build toolkit for Static Sites and SPAs.",
   "main": "index.js",
   "scripts": {
