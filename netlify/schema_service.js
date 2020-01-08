@@ -3,6 +3,46 @@ const yaml = require('node-yaml');
 
 const { readDocuments } = require('../yaml_tasks');
 
+const INTERNAL_DOC_FIELDS = new Set('_file', '_key', '_source');
+
+/*
+ *
+  switch(widget) {
+    case 'node-object':
+      def = createNodeObjectField(service, def, data);
+      break;
+    case 'node-list':
+      def = createNodeListField(service, def, data);
+      break;
+    case 'dynamic-node-list':
+      return createHiddenField(field);
+    case 'keyed-node-mapping':
+      def = createKeyedNodeMappingField(service, def, data);
+      break;
+  }
+*/
+
+const fieldMappers = {
+  'node-object': {
+    handler: createNodeObjectField,
+  },
+
+  'node-list': {
+    handler: createNodeListField
+  },
+
+  'dynamic-node-list': {
+    // eslint-disable-next-line
+    handler: (service, field, data) => {
+      return createHiddenField(field);
+    }
+  },
+  
+  'keyed-node-mapping': {
+    handler: createKeyedNodeMappingField
+  }
+};
+
 function log(...args) {
   console.log('[NetlifyAdminService]', ...args);
 }
@@ -12,6 +52,10 @@ function relativeAdminPath(ctx, file) {
   return path.relative(source, file);
 }
 
+function joinAdminPath(ctx, ...args) {
+  return path.relative(path.join(ctx.source, '..'), path.join(ctx.source, ...args));
+}
+
 function keyedFields(fields) {
   return fields.reduce((obj, x) => {
     obj[x.name] = x;
@@ -19,14 +63,9 @@ function keyedFields(fields) {
   }, {});
 }
 
+/*
 function arrayFields(fieldMap) {
   return Object.values(fieldMap);
-}
-
-function processNodeFields(service, node, doc) {
-  return node.fields.map(x => {
-    return handleField(service, x, doc);
-  });
 }
 
 function hideField(fields, schema, fieldName) {
@@ -39,6 +78,14 @@ function hideField(fields, schema, fieldName) {
 
 function appendField(fields, schema, field) {
   fields.push(field);
+}
+
+*/
+
+function processNodeFields(service, node, data) {
+  return node.fields.map(x => {
+    return handleField(service, x, data);
+  });
 }
 
 function fieldExists(doc, field) {
@@ -60,21 +107,25 @@ function createObjectField(options = {}) {
   };
 }
 
-function createKeyedNodeMappingField(service, field, doc) {
+function createKeyedNodeMappingField(service, field, data) {
   const { name, mapping } = field;
   delete field.mapping;
 
-  const data = doc[name];
-  if(!data || typeof data !== 'object' || Array.isArray(data)) {
+  if(!data) {
     return createHiddenField(field);
   }
-  
+
+  const fieldData = data[name];
+  if(!fieldData || typeof fieldData !== 'object' || Array.isArray(fieldData)) {
+    return createHiddenField(field);
+  }
+
   const fields = [];
-  const keys = Object.keys(data);
+  const keys = Object.keys(fieldData);
 
   keys.forEach(key => {
     const node = service.getNodeFromMapping(mapping, key);
-    const objectFields = processNodeFields(service, node, doc);
+    const objectFields = processNodeFields(service, node, data);
 
     fields.push(createObjectField({
       fields: objectFields,
@@ -91,14 +142,17 @@ function createKeyedNodeMappingField(service, field, doc) {
   };
 }
 
-function createNodeListField(service, field, doc) {
+function createNodeListField(service, field, data) {
   const { name, node } = field;
   delete field.node;
 
-  const data = doc[name] || [];
+  let fieldData = null;
+  if(data && data[name] && Array.isArray(data[name])) {
+    fieldData = data[name];
+  }
 
   const nodeSchema = service.getNode(node);
-  const nodeFields = processNodeFields(service, nodeSchema, data);
+  const nodeFields = processNodeFields(service, nodeSchema, fieldData);
 
   return {
     ...field,
@@ -107,30 +161,31 @@ function createNodeListField(service, field, doc) {
   };
 }
 
-function handleField(service, field, doc) {
+function createNodeObjectField(service, field, doc) {
+  const fields = processNodeFields(service, service.getNode(field.node), doc);
+
+  delete field.node;
+
+  return {
+    ...field,
+    widget: 'object',
+    fields
+  };
+}
+
+function handleField(service, field, data) {
   const { widget } = field;
   let def = { ...field };
 
-  switch(widget) {
-    case 'node-object':
-      def.widget = 'object';
-      def.fields = processNodeFields(service, service.getNode(field.node), doc);
-      delete def.node;
-      break;
-    case 'node-list':
-      def = createNodeListField(service, def, doc);
-      break;
-    case 'dynamic-node-list':
-      return createHiddenField(field);
-    case 'keyed-node-mapping':
-      def = createKeyedNodeMappingField(service, def, doc);
-      break;
+  let maybeFieldMapper = fieldMappers[widget];
+  if(maybeFieldMapper) {
+    def = maybeFieldMapper.handler(service, def, data);
   }
-
+  
   // show only if value exists in the doc
   if(def.when_exists) {
     delete def.when_exists;
-    if(!fieldExists(doc, def)) {
+    if(data && !fieldExists(data, def)) {
       return createHiddenField(def);
     }
   }
@@ -139,15 +194,14 @@ function handleField(service, field, doc) {
 }
 
 function traverseTemplateSchema(service, templateSchema, template, doc) {
-  let docSettings = doc.__cms || {};
+  //let docSettings = doc.__admin || {};
+  //let schemaFields = keyedFields(templateSchema.fields);
   let fields = [];
 
-  let schemaFields = keyedFields(templateSchema.fields);
-
-  if(doc.__cms) {
-    fields.append({
+  if(doc.__admin) {
+    fields.push({
       widget: 'hidden',
-      name: '__cms'
+      name: '__admin'
     });
   }
 
@@ -161,12 +215,25 @@ function traverseTemplateSchema(service, templateSchema, template, doc) {
   // mark all unknown fields hidden to pass them through
   const keyed = keyedFields(fields);
   Object.keys(doc).forEach(key => {
+    if(INTERNAL_DOC_FIELDS.has(key)) return;
     if(!keyed[key]) {
       fields.push({
         widget: 'hidden',
         name: key
       });
     }
+  });
+
+  return fields;
+}
+
+function createFolderFieldsSchema(service, template) {
+  const templateSchema = service.getTemplate(template);
+  const fields = [];
+
+  templateSchema.fields.forEach(f => {
+    const processed = handleField(service, f);
+    if(processed) fields.push(processed);
   });
 
   return fields;
@@ -193,7 +260,7 @@ class NetlifyAdminService {
     const adminSettings = netlifySettings.admin;
 
     if(!adminSettings) {
-      throw new Error(`netlify admin settings not defined`);
+      throw new Error('netlify admin settings not defined');
     }
 
     this.adminSettings = adminSettings;
@@ -214,8 +281,7 @@ class NetlifyAdminService {
     console.log(this.ctx);
     log('loading schema...');
     const settings = await yaml.read(path.join(this.ctx.source, 'settings.yml'));
-    this.baseSettings = settings.cms;
-    delete settings.cms;
+    this.cmsSettings = settings.cms;
     this.settings = settings;
 
     log('loading mappings...');
@@ -223,10 +289,7 @@ class NetlifyAdminService {
 
     log('loading templates...');
     const templates = await readDocuments(this.ctx, 'templates/*.yml');
-    this.templates = templates.reduce((m, x) => {
-      m[x.slug] = x;
-      return m;
-    }, {});
+    this.handleTemplates(templates);
 
     log('loading nodes...');
     const nodes = await readDocuments(this.ctx, 'nodes/*.yml');
@@ -235,6 +298,29 @@ class NetlifyAdminService {
       return m;
     }, {});
 
+  }
+
+  async handleTemplates(templates) {
+    this.templates = templates.reduce((m, x) => {
+      m[x.slug] = x;
+      return m;
+    }, {});
+
+    function extendFieldsFromTemplate(service, originalFields, templateName) {
+      const template = service.getTemplate(templateName);
+      let fields = [ ...template.fields ];
+      if(template.extends) {
+        fields = extendFieldsFromTemplate(service, fields, template.extends);
+      }
+
+      return [ ...fields, ...originalFields ];
+    }
+
+    Object.values(this.templates).forEach(template => {
+      if(template.extends) {
+        template.fields = extendFieldsFromTemplate(this, template.fields, template.extends);
+      }
+    });
   }
 
   async generateConfig() {
@@ -252,7 +338,7 @@ class NetlifyAdminService {
     }));
 
     return {
-      ...this.baseSettings,
+      ...this.cmsSettings, // base cms settings
       ...inject,
       collections: Object.values(this.collections)
     };
@@ -290,6 +376,9 @@ class NetlifyAdminService {
       case 'files':
         collectionDefinition = await this.createFileTreeCollection(collection);
         break;
+      case 'folder':
+        collectionDefinition = await this.createFolderCollection(collection);
+        break;
       default:
         console.warn('unknown collection');
         break;
@@ -300,26 +389,41 @@ class NetlifyAdminService {
     }
   }
 
-  async createFileTreeCollection(collection) {
-    const { name, label, pattern, template } = collection;
+  async createFolderCollection(collection) {
+    const { name, label, template, create, folder } = collection;
+    const options = collection.options || {};
     const def = {
-      name, label,
-      files: []
+      name, label, 
+      create: create || false,
+      fields: [],
+      ...options
     };
 
-    const templateSchema = this.templates[template];
-    if(!templateSchema) {
-      throw new Error(`unknown template schema: ${template}`);
-    }
+    //const templateSchema = this.getTemplate(template);
+    def.folder = joinAdminPath(this.originalContext, folder);
+    def.fields = createFolderFieldsSchema(this, template);
+    return def;
+  }
 
+  async createFileTreeCollection(collection) {
+    const { name, label, pattern, template } = collection;
+    const options = collection.options || {};
+    const def = {
+      name, label,
+      files: [],
+      ...options
+    };
+    
+    //const templateSchema = this.getTemplate(template);
     const documents = await readDocuments(this.originalContext, pattern);
     
     def.files = documents.map(doc => {
-      console.log('DOC:', doc);
       const relativePath = relativeAdminPath(this.originalContext, doc._source);
       doc._file = relativePath;
       return createFileSchema(this, template, doc);
     });
+
+
 
     return def;
   }
@@ -333,10 +437,8 @@ module.exports = {
     const service = new NetlifyAdminService(adminContext);
     await service.loadSchema();
 
-    console.log('netlifyAdminService:', service);
     const schema = await service.generateConfig();
-    console.log(JSON.stringify(schema, true, 2));
-
+    console.log('schema:', require('util').inspect(schema, true, 10));
     await yaml.write(path.join(service.dest, 'config.yml'), schema);
   }
 };
