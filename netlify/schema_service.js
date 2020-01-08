@@ -185,7 +185,7 @@ function handleField(service, field, data) {
   // show only if value exists in the doc
   if(def.when_exists) {
     delete def.when_exists;
-    if(data && !fieldExists(data, def)) {
+    if(!data || !fieldExists(data, def)) {
       return createHiddenField(def);
     }
   }
