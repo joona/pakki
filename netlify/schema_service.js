@@ -1,7 +1,7 @@
 const path = require('path');
 const yaml = require('node-yaml');
 
-const { readDocuments } = require('../yaml_tasks');
+const { readDocuments, readDocument } = require('../yaml_tasks');
 
 const INTERNAL_DOC_FIELDS = new Set('_file', '_key', '_source');
 
@@ -262,18 +262,18 @@ function createFolderFieldsSchema(service, template) {
   return fields;
 }
 
-function createFileSchema(service, collection, template, doc) {
+function createFileSchema(service, collection, template, doc, options = {}) {
   const templateSchema = service.getTemplate(template);
   const fields = traverseTemplateSchema(service, templateSchema, template, doc);
 
   let displayTitle = doc.title || doc._key;
-  console.log('displayTitle:', displayTitle, collection.displayKey, doc[collection.displayKey]);
+  //console.log('displayTitle:', displayTitle, collection.displayKey, doc[collection.displayKey]);
   if(collection.displayKey && doc[collection.displayKey]) {
     displayTitle = doc[collection.displayKey];
   }
 
   return {
-    label: displayTitle || doc._key,
+    label: options.label || displayTitle || doc._key,
     name: doc._key,
     file: doc._file,
     fields: fields
@@ -434,6 +434,24 @@ class NetlifyAdminService {
     return def;
   }
 
+  async createSpecificFilesCollection(collection, definition) {
+    const files = await Promise.all(collection.files.map(async x => {
+      const { label } = x;
+      const fileTemplate = x.template || collection.template;
+
+      const filePath = path.join(this.originalContext.source, x.path);
+      const doc = await readDocument(this.originalContext, filePath, this.originalContext.source);
+      doc._file = filePath;
+
+      return createFileSchema(this, collection, fileTemplate, doc, {
+        label
+      });
+    }));
+
+    definition.files = files;
+    return definition;
+  }
+
   async createFileTreeCollection(collection) {
     const { name, label, pattern, template } = collection;
     const options = collection.options || {};
@@ -442,6 +460,10 @@ class NetlifyAdminService {
       files: [],
       ...options
     };
+
+    if(collection.files) {
+      return this.createSpecificFilesCollection(collection, def);
+    }
     
     //const templateSchema = this.getTemplate(template);
     const documents = await readDocuments(this.originalContext, pattern);
@@ -451,8 +473,6 @@ class NetlifyAdminService {
       doc._file = relativePath;
       return createFileSchema(this, collection, template, doc);
     });
-
-
 
     return def;
   }
