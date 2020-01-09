@@ -7,13 +7,15 @@ const { glob } = require('./utils');
 const tasks = module.exports = {
   async readDocument(ctx, file, relativePath) {
     const content = await yaml.read(file);
-    const fileKey = path.basename(path.relative(relativePath, file), path.extname(file));
+    const relativeFilePath = path.relative(relativePath, file);
+    const fileKey = path.basename(relativeFilePath, path.extname(file));
 
     return {
       slug: fileKey || content.slug,
       ...content,
       _source: file,
-      _key: fileKey
+      _key: fileKey,
+      _path: relativeFilePath
     };
   },
 

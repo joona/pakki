@@ -33,9 +33,7 @@ const fieldMappers = {
 
   'dynamic-node-list': {
     // eslint-disable-next-line
-    handler: (service, field, data) => {
-      return createHiddenField(field);
-    }
+    handler: createDynamicNodeListField
   },
   
   'keyed-node-mapping': {
@@ -104,6 +102,31 @@ function createObjectField(options = {}) {
   return {
     widget: 'object',
     ...options
+  };
+}
+
+function createDynamicNodeListField(service, field) {
+  const { types } = field;
+
+  const processedTypes = types.map(type => {
+    type.widget = type.widget || 'object';
+    
+    if(type.node) {
+      const node = service.getNode(type.node);
+      type.fields = processNodeFields(service, node);
+    } else {
+      type.fields = type.fields.map(field => {
+        return handleField(service, field);
+      });
+    }
+
+    return type;
+  });
+
+  return {
+    ...field,
+    widget: 'list',
+    types: processedTypes
   };
 }
 
@@ -239,12 +262,18 @@ function createFolderFieldsSchema(service, template) {
   return fields;
 }
 
-function createFileSchema(service, template, doc) {
+function createFileSchema(service, collection, template, doc) {
   const templateSchema = service.getTemplate(template);
   const fields = traverseTemplateSchema(service, templateSchema, template, doc);
 
+  let displayTitle = doc.title || doc._key;
+  console.log('displayTitle:', displayTitle, collection.displayKey, doc[collection.displayKey]);
+  if(collection.displayKey && doc[collection.displayKey]) {
+    displayTitle = doc[collection.displayKey];
+  }
+
   return {
-    label: doc.title || doc._key,
+    label: displayTitle || doc._key,
     name: doc._key,
     file: doc._file,
     fields: fields
@@ -278,7 +307,7 @@ class NetlifyAdminService {
   }
 
   async loadSchema() {
-    console.log(this.ctx);
+    //console.log(this.ctx);
     log('loading schema...');
     const settings = await yaml.read(path.join(this.ctx.source, 'settings.yml'));
     this.cmsSettings = settings.cms;
@@ -420,7 +449,7 @@ class NetlifyAdminService {
     def.files = documents.map(doc => {
       const relativePath = relativeAdminPath(this.originalContext, doc._source);
       doc._file = relativePath;
-      return createFileSchema(this, template, doc);
+      return createFileSchema(this, collection, template, doc);
     });
 
 
@@ -438,7 +467,7 @@ module.exports = {
     await service.loadSchema();
 
     const schema = await service.generateConfig();
-    console.log('schema:', require('util').inspect(schema, true, 10));
+    //console.log('schema:', require('util').inspect(schema, true, 10));
     await yaml.write(path.join(service.dest, 'config.yml'), schema);
   }
 };
