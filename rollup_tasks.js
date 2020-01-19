@@ -53,7 +53,7 @@ const plugins = {
     const functionName = options.functionName || '__';
     const outFunctionName = options.outputFunctionName || functionName;
 
-    const re = new RegExp(functionName + '\\(\\s*([\'"`])(.+?)\\1\\s*\\)', 'g');
+    const re = new RegExp(functionName + '\\(\\s*([\'"`])(.+?)\\1,([^)]*)\\s*\\)', 'g');
 
     function findLocalizations(keyArr) {
       return locales.reduce((obj, locale) => {
@@ -67,13 +67,13 @@ const plugins = {
       }, {});
     }
     
-    function replacer(match, p0, p1) {
+    function replacer(match, p0, p1, p2) {
       const parts = p1.split('.');
       const obj = findLocalizations(parts);
 
       console.log('[injectLocalizations] ', parts, obj);
       if(Object.keys(obj).length > 0) {
-        return `${outFunctionName}(${JSON.stringify(obj)}, ${JSON.stringify(p1)})`;
+        return `${outFunctionName}(${JSON.stringify(obj)}, ${JSON.stringify(p1)}${p2 ? `, ${p2}` : ''})`;
       }
 
       throw new Error('translation not found:' + p1);

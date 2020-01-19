@@ -441,7 +441,9 @@ class NetlifyAdminService {
 
       const filePath = path.join(this.originalContext.source, x.path);
       const doc = await readDocument(this.originalContext, filePath, this.originalContext.source);
-      doc._file = filePath;
+
+      const relativePath = relativeAdminPath(this.originalContext, doc._source);
+      doc._file = relativePath;
 
       return createFileSchema(this, collection, fileTemplate, doc, {
         label
