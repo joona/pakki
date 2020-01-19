@@ -53,7 +53,7 @@ const plugins = {
     const functionName = options.functionName || '__';
     const outFunctionName = options.outputFunctionName || functionName;
 
-    const re = new RegExp(functionName + '\\(\\s*([\'"`])(.+?)\\1,([^)]*)\\s*\\)', 'g');
+    const re = new RegExp(functionName + '\\(\\s*([\'"`])(.+?)\\1,?\\s*([^)]*)\\s*\\)', 'gm');
 
     function findLocalizations(keyArr) {
       return locales.reduce((obj, locale) => {
@@ -71,7 +71,7 @@ const plugins = {
       const parts = p1.split('.');
       const obj = findLocalizations(parts);
 
-      console.log('[injectLocalizations] ', parts, obj);
+      console.log('[injectLocalizations] ', parts, obj, p0, p1, p2);
       if(Object.keys(obj).length > 0) {
         return `${outFunctionName}(${JSON.stringify(obj)}, ${JSON.stringify(p1)}${p2 ? `, ${p2}` : ''})`;
       }
