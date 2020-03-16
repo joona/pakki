@@ -5,17 +5,21 @@ const { readFile, writeFile } = require('./utils');
 
 const tasks = module.exports = {
   lessRender(content, options) {
+    console.log('[lessRender] with options:', options);
     return new Promise((resolve, reject) => {
       less.render(content, options)
         .then(output => resolve(output), err => reject(err));
     });
   },
 
-  async buildLessFile(ctx, entry) {
+  async buildLessFile(ctx, entry, options = {}) {
     const { source, dest } = ctx;
     const lessContent = await readFile(path.join(source, 'less', entry));
+
+    const { paths, ...restOptions } = options;
     const lessOptions = {
-      paths: [ path.join(source, 'less') ]
+      paths: [...(Array.isArray(paths) ? paths : []), path.join(source, 'less') ],
+      ...restOptions
     };
 
     try {
@@ -32,10 +36,10 @@ const tasks = module.exports = {
   },
 
   async buildLess(ctx) {
-    const { entries } = ctx.lessSettings || {};
+    const { entries, ...otherOptions } = ctx.lessSettings || {};
 
     await Promise.all(entries.map(entry => {
-      return tasks.buildLessFile(ctx, entry);
+      return tasks.buildLessFile(ctx, entry, otherOptions);
     }));
   }
 };
