@@ -9,11 +9,20 @@ const writeFile = util.promisify(fs.writeFile);
 const readFile = util.promisify(fs.readFile);
 
 const utils = module.exports = {
-  glob,
   mkdirp,
   writeFile,
   readFile,
   recursiveCopy,
+
+  async glob(patterns) {
+    patterns = Array.isArray(patterns) ? patterns : [ patterns ];
+
+    const files = await Promise.all(patterns.map(p => {
+      return glob(p);
+    }));
+
+    return files.reduce((arr, part) => arr.concat(part), []);
+  },
 
   copy(source, target) {
     return new Promise(function(resolve, reject) {
