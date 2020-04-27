@@ -1,7 +1,7 @@
 const path = require('path');
 const less = require('less');
 
-const { readFile, writeFile } = require('./utils');
+const { readFile, writeFile, fileHash } = require('./utils');
 
 const tasks = module.exports = {
   lessRender(content, options) {
@@ -14,24 +14,40 @@ const tasks = module.exports = {
 
   async buildLessFile(ctx, entry, options = {}) {
     const { source, dest } = ctx;
+    const entryName = path.basename(entry, path.extname(entry));
     const lessContent = await readFile(path.join(source, 'less', entry));
 
-    const { paths, ...restOptions } = options;
+    const { paths, hashAlgorithm, ...restOptions } = options;
     const lessOptions = {
       paths: [...(Array.isArray(paths) ? paths : []), path.join(source, 'less') ],
       ...restOptions
     };
 
+    let destFile, output, destFilePath;
     try {
-      const output = await tasks.lessRender(lessContent.toString(), lessOptions);
-      const destFile = entry.replace('less', 'css');
-
-      await writeFile(path.join(dest, destFile), output.css);
+      output = await tasks.lessRender(lessContent.toString(), lessOptions);
+      destFile = entry.replace('less', 'css');
+      destFilePath = path.join(dest, destFile);
+      await writeFile(destFilePath, output.css);
       console.log('[buildLess] built!');
     } catch(err) {
       console.error('Failed to build less:');
       console.error(err);
       throw new err;
+    }
+
+    if(hashAlgorithm) {
+      if(!ctx.lessOutputs) ctx.lessOutputs = {};
+      const hash = await fileHash(ctx, destFilePath, hashAlgorithm);
+      const hashedFile = destFile.replace('.css', `-${hash}.css`);
+      await writeFile(path.join(dest, hashedFile), output);
+
+      ctx.lessOutputs[entryName] = {
+        fileName: path.basename(hashedFile),
+        hash: hash
+      };
+
+      console.log('[buildLess] build with hash', hash, hashedFile);
     }
   },
 

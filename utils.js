@@ -3,6 +3,7 @@ const util = require('util');
 const path = require('path');
 const mkdirp = require('mkdirp-promise');
 const recursiveCopy = require('recursive-copy');
+const crypto = require('crypto');
 
 const glob = util.promisify(require('glob'));
 const writeFile = util.promisify(fs.writeFile);
@@ -97,5 +98,31 @@ const utils = module.exports = {
     }
 
     return { filePath, url };
+  },
+
+  async fileHash(ctx, filePath, algorithm) {
+    if(!algorithm) {
+      algorithm = ctx.hashAlgorithm || 'md5';
+    }
+
+    return new Promise((resolve, reject) => {
+      let shasum = crypto.createHash(algorithm);
+      try {
+        let s = fs.ReadStream(filePath);
+
+        s.on('data', data => {
+          shasum.update(data);
+        });
+
+        // making digest
+        s.on('end', () => {
+          const hash = shasum.digest('hex');
+          return resolve(hash);
+        });
+      } catch (error) {
+        console.error(error.stack);
+        return reject('hash calculation failed: ' + error.message);
+      }
+    });
   }
 };
