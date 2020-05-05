@@ -304,7 +304,8 @@ const tasks = module.exports = {
       throw err;
     }
 
-    const output = path.join(dest, `${bundleName}.js`);
+    const outputName = `${bundleName}.js`;
+    const output = path.join(dest, outputName);
     bundle.write({
       format: bundleFormat,
       file: output
@@ -312,6 +313,10 @@ const tasks = module.exports = {
 
     console.log('[buildEntry]', bundleFormat, entry, '=>', bundleName, 'built! took', +(new Date()) - startTime);
     delete bundleLocks[bundleKey];
-    return output;
+    return {
+      bundleName,
+      outputName,
+      outputPath: output
+    };
   }
 };
