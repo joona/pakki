@@ -306,7 +306,7 @@ const tasks = module.exports = {
 
     const outputName = `${bundleName}.js`;
     const output = path.join(dest, outputName);
-    bundle.write({
+    await bundle.write({
       format: bundleFormat,
       file: output
     });
