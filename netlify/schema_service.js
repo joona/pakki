@@ -274,7 +274,7 @@ function createFileSchema(service, collection, template, doc, options = {}) {
 
   return {
     label: options.label || displayTitle || doc._key,
-    name: doc._key,
+    name: options.name || doc._key,
     file: doc._file,
     fields: fields
   };
@@ -436,7 +436,6 @@ class NetlifyAdminService {
 
   async createSpecificFilesCollection(collection, definition) {
     const files = await Promise.all(collection.files.map(async x => {
-      const { label } = x;
       const fileTemplate = x.template || collection.template;
 
       const filePath = path.join(this.originalContext.source, x.path);
@@ -445,9 +444,7 @@ class NetlifyAdminService {
       const relativePath = relativeAdminPath(this.originalContext, doc._source);
       doc._file = relativePath;
 
-      return createFileSchema(this, collection, fileTemplate, doc, {
-        label
-      });
+      return createFileSchema(this, collection, fileTemplate, doc, x);
     }));
 
     definition.files = files;
