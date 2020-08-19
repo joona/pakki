@@ -9,12 +9,14 @@ const tasks = module.exports = {
     const content = await readFile(item);
     const matter = frontMatter(content.toString());
     const filePath = path.basename(path.relative(relativePath, item), '.md');
+    const fileKey = path.basename(filePath, path.extname(item));
     
     return {
       slug,
       content: matter.body,
       ...matter.attributes,
-      _key: filePath,
+      _key: fileKey,
+      _path: filePath,
       _source: item
     };
   },

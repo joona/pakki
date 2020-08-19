@@ -1,7 +1,7 @@
 const path = require('path');
 const yaml = require('node-yaml');
 
-const { readDocuments, readDocument } = require('../yaml_tasks');
+const { readDocuments, readDocument } = require('../document_tasks');
 
 const INTERNAL_DOC_FIELDS = new Set('_file', '_key', '_source');
 
