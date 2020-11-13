@@ -11,13 +11,21 @@ const tasks = module.exports = {
     const relativeFilePath = path.relative(relativePath, file);
     const fileKey = path.basename(relativeFilePath, path.extname(file));
 
+    let rawContent;
     let content;
     try {
-      content = JSON.parse(raw);
+      rawContent = JSON.parse(raw);
     } catch(err) {
       console.error('Malformed JSON document:', file, relativePath);
       console.error(err.stack);
       throw err;
+    }
+
+    // if JSON content is not an object, do not try to assign it to top level
+    if(typeof rawContent === 'object' && !Array.isArray) {
+      content = rawContent;
+    } else {
+      content = { data: rawContent };
     }
 
     return {
