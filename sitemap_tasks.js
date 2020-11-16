@@ -1,9 +1,10 @@
 const path = require('path');
-const sitemapBuilder = require('sitemap');
+const { SitemapStream, streamToPromise } = require('sitemap');
+const { Readable } = require('stream');
 
 const { writeFile } = require('./utils');
 
-module.exports = {
+const sitemapBuilder = module.exports = {
   async buildSitemap(ctx, sitemap) {
     const { dest, site } = ctx;
 
@@ -68,15 +69,24 @@ module.exports = {
       }
     });
 
-    const sitemapContent = sitemapBuilder.createSitemap({
+    const sitemapContent = await sitemapBuilder.createSitemap(urls, {
       hostname: site.baseUrl,
       cacheTime: 60 * 60 * 10,
-      urls
     });
 
     console.log('[buildSitemap] writing sitemap with ', urls.length, 'items');
     await writeFile(path.join(dest, 'sitemap.xml'), sitemapContent.toString());
 
     ctx.sitemap = [];
+  },
+
+  async createSitemap(urls, options) {
+    const stream = new SitemapStream(options);
+
+    return streamToPromise(Readable.from(urls)
+      .pipe(stream))
+      .then(data => {
+        return data.toString();
+      });
   }
 };

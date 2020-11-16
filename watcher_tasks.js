@@ -36,10 +36,11 @@ class WatcherBuilder {
 
     watcher
       .on('change', cb.bind(null, 'change'))
-      //.on('add', cb.bind(null, 'add'))
+      .on('add', cb.bind(null, 'add'))
       .on('remove', cb.bind(null, 'remove'));
 
     this.watchers.push(watcher);
+    //console.log('[watcher] watching', paths, watcher.getWatched());
     return this;
   }
 
