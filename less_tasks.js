@@ -39,11 +39,13 @@ const tasks = module.exports = {
     if(hashAlgorithm) {
       if(!ctx.lessOutputs) ctx.lessOutputs = {};
       const hash = await fileHash(ctx, destFilePath, hashAlgorithm);
-      const hashedFile = destFile.replace('.css', `-${hash}.css`);
-      await writeFile(path.join(dest, hashedFile), output.css);
+      const hashedFile = destFilePath.replace('.css', `-${hash}.css`);
+      await writeFile(hashedFile, output.css);
 
       ctx.lessOutputs[entryName] = {
-        fileName: path.basename(hashedFile),
+        filePath: path.relative(ctx.dest, destFilePath),
+        fileName: path.basename(destFilePath),
+        hashedName: path.basename(hashedFile),
         hash: hash
       };
 

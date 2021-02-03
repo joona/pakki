@@ -19,6 +19,7 @@ const tasks = module.exports = {
 
     if(!ctx.bundleOutputs) ctx.bundleOutputs = {};
     ctx.bundleOutputs[bundle.bundleName] = {
+      filePath: bundle.relativePath,
       fileName: bundle.outputName
     };
 
@@ -27,7 +28,12 @@ const tasks = module.exports = {
       const hashedFile = bundle.outputName.replace(name, `${name}-${hash}`);
       await copy(bundle.outputPath, path.join(ctx.dest, hashedFile));
 
-      ctx.bundleOutputs[bundle.bundleName].hashedName = path.basename(hashedFile);
+      const { filePath } = ctx.bundleOutputs[bundle.bundleName];
+      const basename = path.basename(filePath);
+      const baseHashed = path.basename(hashedFile);
+      
+      ctx.bundleOutputs[bundle.bundleName].hashedName = baseHashed;
+      ctx.bundleOutputs[bundle.bundleName].filePath = filePath.replace(basename, baseHashed);
       ctx.bundleOutputs[bundle.bundleName].hash = hash;
       console.log('[buildBundle] build with hash', hash, hashedFile);
     }

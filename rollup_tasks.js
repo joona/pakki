@@ -316,7 +316,8 @@ const tasks = module.exports = {
     return {
       bundleName,
       outputName,
-      outputPath: output
+      outputPath: output,
+      relativePath: path.relative(dest, output)
     };
   }
 };
