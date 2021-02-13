@@ -1,7 +1,7 @@
 const fs = require('fs');
 const util = require('util');
 const path = require('path');
-const mkdirp = require('mkdirp-promise');
+const mkdirp = require('mkdirp');
 const recursiveCopy = require('recursive-copy');
 const crypto = require('crypto');
 
