@@ -53,8 +53,5 @@
     "serve": "^11.3.2",
     "serve-handler": "^6.1.3",
     "sitemap": "^6.3.3"
-  },
-  "devDependencies": {
-    "mkdirp": "^1.0.4"
   }
 }
